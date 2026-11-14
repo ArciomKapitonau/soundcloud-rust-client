@@ -163,6 +163,9 @@ impl StreamReader {
 
 impl Read for StreamReader {
     fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
+        if out.is_empty() {
+            return Ok(0);
+        }
         let (start, limit) = self.physical();
         let (m, c) = &*self.buf.inner;
         let mut s = m.lock();
@@ -468,6 +471,18 @@ mod tests {
         let mut s = String::new();
         r.read_to_string(&mut s).unwrap();
         assert_eq!(s, "INITbbbbcccc");
+    }
+
+    #[test]
+    fn empty_read_does_not_wait_for_download() {
+        let buffer = StreamBuffer::new();
+        let mut reader = buffer.reader();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || tx.send(reader.read(&mut [])).unwrap());
+        let result = rx.recv_timeout(Duration::from_secs(1));
+        buffer.cancel();
+        worker.join().unwrap();
+        assert_eq!(result.expect("empty read blocked").unwrap(), 0);
     }
 
     #[test]

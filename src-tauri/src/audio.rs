@@ -258,7 +258,13 @@ impl Iterator for ScSource {
         if self.ctl.stop.load(Ordering::Relaxed) {
             return None;
         }
-        let seek = self.ctl.pending_seek.lock().take();
+        // Apply seeks only between complete interleaved audio frames.
+        // Otherwise the new left sample could be emitted into the right channel.
+        let seek = if self.idx.is_multiple_of(self.channels.max(1) as usize) {
+            self.ctl.pending_seek.lock().take()
+        } else {
+            None
+        };
         if let Some(secs) = seek {
             self.do_seek(secs);
         }
@@ -277,7 +283,9 @@ impl Iterator for ScSource {
 
 impl rodio::Source for ScSource {
     fn current_frame_len(&self) -> Option<usize> {
-        Some((self.buf.len() - self.idx.min(self.buf.len())).max(1))
+        // At a packet boundary advertise at least one complete audio frame.
+        // A one-sample span splits stereo and resets rodio's converter mid-frame.
+        Some((self.buf.len() - self.idx.min(self.buf.len())).max(self.channels.max(1) as usize))
     }
     fn channels(&self) -> u16 {
         self.channels
@@ -1360,6 +1368,40 @@ mod tests {
         // Seeking past the end just ends the stream, no panic.
         ctl.request_seek(1e6);
         assert_eq!(src.by_ref().take(10).count(), 0);
+    }
+
+    #[test]
+    fn stereo_boundaries_and_seeks_preserve_channel_alignment() {
+        use rodio::Source;
+        let buffer = StreamBuffer::new();
+        buffer.push_for_test(&silent_mp3(200));
+        let ctl = Arc::new(SourceCtl::default());
+        let mut source = open_source(&buffer, "mp3", ctl.clone(), 0.0).unwrap();
+        // Distinct L/R samples expose a seek applied halfway through a frame.
+        source.channels = 2;
+        source.buf = vec![0.25, -0.75];
+        source.idx = 0;
+        assert_eq!(source.next(), Some(0.25));
+        ctl.request_seek(2.0);
+        assert_eq!(source.next(), Some(-0.75));
+        assert_eq!(*ctl.pending_seek.lock(), Some(2.0));
+        assert_eq!(source.current_frame_len(), Some(2));
+        assert!(source.next().is_some());
+        assert!(ctl.pending_seek.lock().is_none());
+    }
+
+    #[test]
+    fn stereo_resampling_reaches_end() {
+        let mut data = silent_mp3(200);
+        for frame in data.as_chunks_mut::<417>().0 { frame[3] = 0; }
+        let buffer = StreamBuffer::new();
+        buffer.push_for_test(&data);
+        let source = open_source(&buffer, "mp3", Arc::default(), 0.0).unwrap();
+        assert_eq!(rodio::Source::channels(&source), 2);
+        let mut converted = rodio::source::UniformSourceIterator::<_, f32>::new(source, 2, 48000);
+        let count = converted.by_ref().take(600000).count();
+        assert!((450000..550000).contains(&count), "unexpected length: {count}");
+        assert!(converted.next().is_none());
     }
 
     #[test]

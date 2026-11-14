@@ -1,0 +1,13 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "SoundCloud",
+        "width": 1320,
+        "height": 860,
+        "transparent": false
+      }
+    ]
+  }
+}
