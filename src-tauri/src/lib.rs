@@ -5,6 +5,8 @@ mod audio;
 mod auth;
 mod commands;
 mod config;
+#[cfg(unix)]
+mod discord;
 mod models;
 mod mpris;
 mod stream;
@@ -35,6 +37,8 @@ pub fn run() {
                 let _ = handle.emit("player://state", st);
             });
             let player = audio::Player::new(api.clone(), on_state, audio::AudioBackend::Device);
+            #[cfg(unix)]
+            discord::start(&player);
             mpris::start(app.handle().clone(), &player);
             app.manage(AppState { api, player });
             tray::setup(app.handle())?;
