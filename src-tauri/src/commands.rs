@@ -336,3 +336,27 @@ pub async fn get_discover(state: State<'_, AppState>) -> CmdResult<Vec<crate::mo
 pub async fn get_system_playlist_tracks(state: State<'_, AppState>, system_id: String) -> CmdResult<Vec<Track>> {
     state.api.system_playlist_tracks(&system_id).await.map_err(err)
 }
+
+#[tauri::command]
+pub async fn search_catalog(state: State<'_, AppState>, query: String, kind: String, offset: u32) -> CmdResult<serde_json::Value> {
+    if !matches!(kind.as_str(), "albums" | "users") { return Err("Неизвестный тип поиска".into()); }
+    let value = state.api.v2_get(&format!("/search/{kind}"), &[("q", query), ("limit", "30".into()), ("offset", offset.to_string()), ("linked_partitioning", "1".into())]).await.map_err(err)?;
+    let items = value.get("collection").and_then(serde_json::Value::as_array).ok_or("Некорректный ответ поиска")?;
+    let entries: Vec<serde_json::Value> = if kind == "users" {
+        items.iter().filter_map(User::from_value).filter_map(|u| serde_json::to_value(u).ok()).collect()
+    } else {
+        items.iter().filter_map(Playlist::from_value).filter_map(|p| serde_json::to_value(p).ok()).collect()
+    };
+    Ok(serde_json::json!({"items":entries,"hasMore":value.get("next_href").and_then(serde_json::Value::as_str).is_some()}))
+}
+
+#[tauri::command]
+pub async fn get_artist(state: State<'_, AppState>, artist_id: u64) -> CmdResult<User> {
+    let value = state.api.v2_get(&format!("/users/{artist_id}"), &[]).await.map_err(err)?;
+    User::from_value(&value).ok_or("Некорректный профиль исполнителя".into())
+}
+
+#[tauri::command]
+pub async fn get_artist_tracks(state: State<'_, AppState>, artist_id: u64) -> CmdResult<Page> {
+    state.api.artist_tracks(artist_id).await.map_err(err)
+}

@@ -10,6 +10,8 @@ interface Toast {
 }
 
 interface AppCtx {
+  artistId: number | null;
+  openArtist: (id: number | null) => void;
   auth: AuthStatus | null;
   setAuth: (a: AuthStatus) => void;
   refreshAuth: () => Promise<void>;
@@ -41,6 +43,7 @@ const initialPlayer: PlayerState = {
 const Ctx = createContext<AppCtx | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [artistId, openArtist] = useState<number | null>(null);
   const [auth, setAuth] = useState<AuthStatus | null>(null);
   const [player, setPlayer] = useState<PlayerState>(initialPlayer);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
@@ -144,8 +147,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AppCtx>(
-    () => ({ auth, setAuth, refreshAuth, player, likedIds, toggleLike, playFrom, seekFraction, toasts, notify }),
-    [auth, refreshAuth, player, likedIds, toggleLike, playFrom, seekFraction, toasts, notify],
+    () => ({ artistId, openArtist, auth, setAuth, refreshAuth, player, likedIds, toggleLike, playFrom, seekFraction, toasts, notify }),
+    [artistId, auth, refreshAuth, player, likedIds, toggleLike, playFrom, seekFraction, toasts, notify],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

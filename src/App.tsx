@@ -5,6 +5,7 @@ import { api } from "./lib/api";
 import { Sidebar, type View } from "./components/Sidebar";
 import { PlayerBar } from "./components/PlayerBar";
 import { Toasts } from "./components/Toasts";
+import { Artist } from "./views/Artist";
 import { Feed } from "./views/Feed";
 import { Home } from "./views/Home";
 import { Search } from "./views/Search";
@@ -14,7 +15,7 @@ import { Settings } from "./views/Settings";
 import { Login } from "./views/Login";
 
 export default function App() {
-  const { auth, player } = useApp();
+  const { auth, player, artistId, openArtist } = useApp();
   const [view, setView] = useState<View>("home");
   const [query, setQuery] = useState("");
   const main = useRef<HTMLElement>(null);
@@ -60,8 +61,9 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
-        <Sidebar view={view} setView={setView} />
+        <Sidebar view={view} setView={(next) => { openArtist(null); setView(next); }} />
         <main ref={main} className="min-w-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-7">
+          {artistId !== null ? <Artist key={artistId} id={artistId} back={() => openArtist(null)} /> : <>
           {view === "feed" && <Feed />}
           {view === "albums" && <Playlists key="albums" albums goSettings={goSettings} />}
           {view === "home" && <Home />}
@@ -69,6 +71,7 @@ export default function App() {
           {view === "likes" && <Likes goSettings={goSettings} />}
           {view === "playlists" && <Playlists key="playlists" goSettings={goSettings} />}
           {view === "settings" && <Settings />}
+          </>}
         </main>
       </div>
       <PlayerBar />

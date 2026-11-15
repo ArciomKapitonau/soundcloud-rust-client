@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function TrackGrid({ tracks, loading, hasMore, loadingMore, onLoadMore, empty }: Props) {
-  const { player, likedIds, playFrom, seekFraction, toggleLike } = useApp();
+  const { player, likedIds, playFrom, seekFraction, toggleLike, openArtist } = useApp();
 
   // Keep event props stable between position ticks so TrackCard.memo can skip
   // every card except the currently playing one.
@@ -55,6 +55,7 @@ export function TrackGrid({ tracks, loading, hasMore, loadingMore, onLoadMore, e
             <TrackCard
               key={`${t.id}-${i}`}
               track={t}
+              openArtist={openArtist}
               isCurrent={isCurrent}
               status={isCurrent ? player.status : "idle"}
               progress={isCurrent ? progress : null}

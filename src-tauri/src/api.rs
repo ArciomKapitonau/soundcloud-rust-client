@@ -708,6 +708,11 @@ impl ApiClient {
         self.to_page(v).await
     }
 
+    pub async fn artist_tracks(&self, id: u64) -> Result<Page> {
+        let value = self.v2_get(&format!("/users/{id}/tracks"), &[("limit", "30".into()), ("linked_partitioning", "1".into())]).await?;
+        self.to_page(value).await
+    }
+
     pub async fn likes(&self) -> Result<Page> {
         let page = match self.mode() {
             Mode::Official => {
@@ -817,7 +822,14 @@ impl ApiClient {
                 title: row.get("title").and_then(Value::as_str).unwrap_or("Подборка SoundCloud").into(),
                 tracks: Vec::new(), playlists: Vec::new(),
             };
-            if let Some(items) = row.pointer("/items/collection").and_then(Value::as_array) {
+            // Discovery's recently-played cards describe listening contexts
+            // (albums/playlists), not the individual tracks that were played.
+            if row.get("tracking_feature_name").and_then(Value::as_str) == Some("recently-played") {
+                match self.v2_get("/me/play-history/tracks", &[("limit", "30".into()), ("linked_partitioning", "1".into())]).await {
+                    Ok(history) => section.tracks = self.to_page(history).await?.tracks,
+                    Err(e) => log::warn!("cannot load recent tracks: {e:#}"),
+                }
+            } else if let Some(items) = row.pointer("/items/collection").and_then(Value::as_array) {
                 for item in items {
                     match item.get("kind").and_then(Value::as_str) {
                         Some("track") => { if let Some(t) = Track::from_value(item) { section.tracks.push(t); } }

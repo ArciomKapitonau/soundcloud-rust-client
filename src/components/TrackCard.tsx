@@ -9,6 +9,7 @@ import { Waveform } from "./Waveform";
 
 interface Props {
   track: Track;
+  openArtist: (id: number | null) => void;
   isCurrent: boolean;
   status: "idle" | "loading" | "playing" | "paused";
   progress: number | null;
@@ -18,7 +19,7 @@ interface Props {
   onLike: () => void;
 }
 
-function TrackCardImpl({ track, isCurrent, status, progress, liked, onPlay, onSeek, onLike }: Props) {
+function TrackCardImpl({ track, isCurrent, status, progress, liked, onPlay, onSeek, onLike, openArtist }: Props) {
   const btnState = isCurrent ? (status === "playing" ? "playing" : status === "loading" ? "loading" : "paused") : "paused";
   return (
     <div
@@ -46,7 +47,7 @@ function TrackCardImpl({ track, isCurrent, status, progress, liked, onPlay, onSe
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] text-muted">{track.artist}</div>
+            <button disabled={!track.artistId} onClick={() => track.artistId && openArtist(track.artistId)} className="block max-w-full truncate text-left text-[13px] text-muted hover:text-accent hover:underline disabled:no-underline">{track.artist}</button>
             <div className="truncate text-[15px] font-semibold text-fg" title={track.title}>
               {track.title}
             </div>
