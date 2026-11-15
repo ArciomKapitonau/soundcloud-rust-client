@@ -211,3 +211,15 @@ input[type="range"].slider::-webkit-slider-thumb {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Skip off-screen card layout/paint while preserving scroll geometry. */
+.track-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 140px;
+}
+/* Repeated backdrop blurs are expensive during software-rendered scrolling.
+   Keep the theme's colours and panel effects, but not a blur per track. */
+.track-card.themed-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}

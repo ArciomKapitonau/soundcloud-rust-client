@@ -135,12 +135,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const seekFraction = useCallback(
     (f: number) => {
-      if (!player.track) return;
+      if (player.track?.id == null) return;
       const secs = f * player.duration;
       setPlayer((p) => ({ ...p, position: secs }));
       api.seek(secs);
     },
-    [player.track, player.duration],
+    [player.track?.id, player.duration],
   );
 
   const value = useMemo<AppCtx>(

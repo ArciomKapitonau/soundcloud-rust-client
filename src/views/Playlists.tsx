@@ -9,7 +9,7 @@ import { TrackGrid } from "../components/TrackGrid";
 import { ErrorBox, ViewHeader } from "../components/ViewHeader";
 import { NeedLogin } from "./NeedLogin";
 
-export function Playlists({ goSettings }: { goSettings: () => void }) {
+export function Playlists({ goSettings, albums = false }: { goSettings: () => void; albums?: boolean }) {
   const { auth } = useApp();
   const anon = auth?.mode === "anonymous";
   const [lists, setLists] = useState<Playlist[] | null>(null);
@@ -19,22 +19,22 @@ export function Playlists({ goSettings }: { goSettings: () => void }) {
   const load = useCallback(() => {
     setError(null);
     setLists(null);
-    api.playlists().then(setLists).catch((e) => {
+    api.playlists().then((items) => setLists(items.filter((p) => p.isAlbum === albums))).catch((e) => {
       setError(errorText(e));
       setLists([]);
     });
-  }, []);
+  }, [albums]);
 
   useEffect(() => {
     if (!anon) load();
   }, [anon, auth?.user?.id, load]);
 
-  if (anon) return <NeedLogin icon={ListMusic} what="плейлисты" goSettings={goSettings} />;
+  if (anon) return <NeedLogin icon={ListMusic} what={albums ? "альбомы" : "плейлисты"} goSettings={goSettings} />;
   if (open) return <PlaylistDetail playlist={open} back={() => setOpen(null)} />;
 
   return (
     <div>
-      <ViewHeader title="Плейлисты" subtitle="Ваши и понравившиеся плейлисты" onRefresh={load} />
+      <ViewHeader title={albums ? "Альбомы" : "Плейлисты"} subtitle={albums ? "Ваши и понравившиеся альбомы" : "Ваши и понравившиеся плейлисты"} onRefresh={load} />
       {error && <ErrorBox text={error} onRetry={load} />}
       {lists === null ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(150px,45%),1fr))] gap-5">
@@ -46,7 +46,7 @@ export function Playlists({ goSettings }: { goSettings: () => void }) {
           ))}
         </div>
       ) : lists.length === 0 && !error ? (
-        <div className="py-20 text-center text-muted">Плейлистов пока нет</div>
+        <div className="py-20 text-center text-muted">Релизов пока нет</div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(150px,45%),1fr))] gap-5">
           {lists.map((p) => (
@@ -65,7 +65,7 @@ export function Playlists({ goSettings }: { goSettings: () => void }) {
   );
 }
 
-function PlaylistDetail({ playlist, back }: { playlist: Playlist; back: () => void }) {
+export function PlaylistDetail({ playlist, back }: { playlist: Playlist; back: () => void }) {
   const { playFrom } = useApp();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,23 +74,22 @@ function PlaylistDetail({ playlist, back }: { playlist: Playlist; back: () => vo
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    api
-      .playlistTracks(playlist.id)
+    (playlist.systemId ? api.systemPlaylistTracks(playlist.systemId) : api.playlistTracks(playlist.id))
       .then(setTracks)
       .catch((e) => setError(errorText(e)))
       .finally(() => setLoading(false));
-  }, [playlist.id]);
+  }, [playlist.id, playlist.systemId]);
   useEffect(load, [load]);
 
   return (
     <div>
       <button onClick={back} className="mb-4 flex items-center gap-2 text-sm text-muted transition hover:text-fg">
-        <ArrowLeft size={16} /> Все плейлисты
+        <ArrowLeft size={16} /> Назад
       </button>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
         <Cover src={playlist.artworkUrl} alt={playlist.title} className="h-36 w-36 shrink-0 shadow-2xl shadow-black/60 md:h-48 md:w-48" rounded="rounded-lg" />
         <div className="min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-wider text-accent">Плейлист</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-accent">{playlist.isAlbum ? "Альбом" : "Плейлист"}</div>
           <h1 className="mt-1 truncate text-2xl font-bold tracking-tight md:text-4xl">{playlist.title}</h1>
           <div className="mt-2 text-sm text-muted">
             {playlist.artist} · {playlist.trackCount} треков · {formatTime(playlist.durationMs / 1000)}

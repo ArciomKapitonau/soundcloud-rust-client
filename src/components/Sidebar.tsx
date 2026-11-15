@@ -1,8 +1,8 @@
-import { Heart, Home, ListMusic, Search, Settings } from "lucide-react";
+import { Disc3, Radio, Heart, Home, ListMusic, Search, Settings } from "lucide-react";
 import { useApp } from "../lib/store";
 import { Cover } from "./Cover";
 
-export type View = "home" | "search" | "likes" | "playlists" | "settings";
+export type View = "home" | "feed" | "albums" | "search" | "likes" | "playlists" | "settings";
 
 const Item = ({ active, icon: Icon, label, onClick }: { active: boolean; icon: typeof Home; label: string; onClick: () => void }) => (
   <button
@@ -29,12 +29,14 @@ export function Sidebar({ view, setView }: { view: View; setView: (v: View) => v
 
       <nav className="flex flex-col gap-1 px-2 lg:px-3">
         <Item active={view === "home"} icon={Home} label="Главная" onClick={() => setView("home")} />
+        <Item active={view === "feed"} icon={Radio} label="Подписки" onClick={() => setView("feed")} />
         <Item active={view === "search"} icon={Search} label="Поиск" onClick={() => setView("search")} />
       </nav>
 
       <div className="mt-6 hidden px-6 pb-2 text-[11px] font-semibold uppercase tracking-wider text-dim lg:block">Моя медиатека</div>
       <div className="mx-4 my-3 h-px bg-line lg:hidden" />
       <nav className="flex flex-col gap-1 px-2 lg:px-3">
+        <Item active={view === "albums"} icon={Disc3} label="Альбомы" onClick={() => setView("albums")} />
         <Item active={view === "likes"} icon={Heart} label="Лайки" onClick={() => setView("likes")} />
         <Item active={view === "playlists"} icon={ListMusic} label="Плейлисты" onClick={() => setView("playlists")} />
       </nav>

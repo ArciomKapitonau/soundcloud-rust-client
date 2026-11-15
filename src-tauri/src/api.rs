@@ -655,13 +655,8 @@ impl ApiClient {
         match self.mode() {
             Mode::Official => {
                 let q = [("limit", "40".to_string()), ("linked_partitioning", "true".to_string())];
-                match self.official_get("/me/feed/tracks", &q).await {
-                    Ok(v) => self.to_page(v).await,
-                    Err(e) => {
-                        log::warn!("feed failed: {e:#}, falling back to likes");
-                        self.likes().await
-                    }
-                }
+                let v = self.official_get("/me/feed/tracks", &q).await?;
+                self.to_page(v).await
             }
             Mode::V2 => {
                 let v = self
@@ -804,6 +799,38 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn system_playlist_tracks(&self, id: &str) -> Result<Vec<Track>> {
+        if !id.starts_with("soundcloud:system-playlists:") || !id.chars().all(|c| c.is_ascii_alphanumeric() || ":-_".contains(c)) {
+            bail!("Некорректный идентификатор подборки");
+        }
+        let value = self.v2_get(&format!("/system-playlists/{id}"), &[]).await?;
+        let items = value.get("tracks").and_then(Value::as_array).ok_or_else(|| anyhow!("Подборка не содержит треклист"))?;
+        self.tracks_from_items(items).await
+    }
+
+    pub async fn discover(&self) -> Result<Vec<crate::models::DiscoverySection>> {
+        let value = self.v2_get("/mixed-selections", &[("limit", "30".into()), ("linked_partitioning", "1".into())]).await?;
+        let rows = value.get("collection").and_then(Value::as_array).ok_or_else(|| anyhow!("Некорректный ответ подборок SoundCloud"))?;
+        let mut result = Vec::new();
+        for row in rows {
+            let mut section = crate::models::DiscoverySection {
+                title: row.get("title").and_then(Value::as_str).unwrap_or("Подборка SoundCloud").into(),
+                tracks: Vec::new(), playlists: Vec::new(),
+            };
+            if let Some(items) = row.pointer("/items/collection").and_then(Value::as_array) {
+                for item in items {
+                    match item.get("kind").and_then(Value::as_str) {
+                        Some("track") => { if let Some(t) = Track::from_value(item) { section.tracks.push(t); } }
+                        Some("playlist" | "system-playlist") => { if let Some(p) = Playlist::from_value(item) { section.playlists.push(p); } }
+                        _ => {}
+                    }
+                }
+            }
+            if !section.tracks.is_empty() || !section.playlists.is_empty() { result.push(section); }
+        }
+        Ok(result)
+    }
+
     pub async fn playlists(&self) -> Result<Vec<Playlist>> {
         let mut values = Vec::new();
         match self.mode() {
@@ -821,11 +848,27 @@ impl ApiClient {
             _ => {
                 let id = self.my_id().await?;
                 let q = [("limit", "50".to_string()), ("linked_partitioning", "1".to_string())];
-                values.push(self.v2_get(&format!("/users/{id}/playlists_without_albums"), &q).await?);
+                values.push(self.v2_get(&format!("/users/{id}/playlists"), &q).await?);
                 if let Ok(v) = self.v2_get(&format!("/users/{id}/playlist_likes"), &q).await {
                     values.push(v);
                 }
             }
+        }
+        // Expand each library collection before splitting albums/playlists in the UI.
+        let mut page_urls = HashSet::new();
+        let mut cursor = 0;
+        while cursor < values.len() {
+            if let Some(next) = values[cursor].get("next_href").and_then(Value::as_str).map(str::to_owned) {
+                if page_urls.insert(next.clone()) {
+                    let page = if self.mode() == Mode::Official {
+                        self.official_get(&next, &[]).await?
+                    } else {
+                        self.v2_get(&next, &[]).await?
+                    };
+                    values.push(page);
+                }
+            }
+            cursor += 1;
         }
         let mut seen = HashSet::new();
         let mut out = Vec::new();

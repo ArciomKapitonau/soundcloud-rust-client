@@ -66,6 +66,8 @@ pub fn run() {
             commands::refresh_client_id,
             commands::logout,
             commands::get_feed,
+            commands::get_discover,
+            commands::get_system_playlist_tracks,
             commands::search_tracks,
             commands::get_likes,
             commands::load_next,

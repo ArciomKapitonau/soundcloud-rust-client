@@ -7,7 +7,7 @@ import { OfficialLoginForm, WebTokenForm } from "../components/AuthForms";
 
 export function Login() {
   const { setAuth, notify } = useApp();
-  const [tab, setTab] = useState<"oauth" | "web">("oauth");
+  const [tab, setTab] = useState<"oauth" | "web">("web");
   const [busy, setBusy] = useState(false);
 
   const guest = async () => {
@@ -32,13 +32,13 @@ export function Login() {
         </div>
 
         <div className="mb-5 grid grid-cols-2 rounded-full bg-input p-1 text-sm">
-          {(["oauth", "web"] as const).map((t) => (
+          {(["web", "oauth"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`rounded-pill py-2 font-medium transition ${tab === t ? "bg-surface-3 text-fg" : "text-muted hover:text-fg"}`}
             >
-              {t === "oauth" ? "OAuth" : "Веб-токены"}
+              {t === "oauth" ? "Для разработчиков" : "Веб-сессия"}
             </button>
           ))}
         </div>

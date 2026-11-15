@@ -12,6 +12,7 @@ function loadWaveform(url: string): Promise<number[]> {
       throw e;
     });
     cache.set(url, p);
+    if (cache.size > 256) cache.delete(cache.keys().next().value!);
   }
   return p;
 }
@@ -52,7 +53,7 @@ export function Waveform({ url, seed, progress, onSeek, height = 60, reflection 
   useEffect(() => {
     const el = wrap.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setVisible(true), { rootMargin: "200px" });
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: "200px" });
     io.observe(el);
     const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
     ro.observe(el);
@@ -79,10 +80,12 @@ export function Waveform({ url, seed, progress, onSeek, height = 60, reflection 
 
   useEffect(() => {
     const c = canvas.current;
-    if (!c || !width) return;
+    if (!c || !width || !visible) return;
     const dpr = window.devicePixelRatio || 1;
-    c.width = Math.floor(width * dpr);
-    c.height = Math.floor(height * dpr);
+    const pixelWidth = Math.floor(width * dpr);
+    const pixelHeight = Math.floor(height * dpr);
+    if (c.width !== pixelWidth) c.width = pixelWidth;
+    if (c.height !== pixelHeight) c.height = pixelHeight;
     const ctx = c.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -134,7 +137,7 @@ export function Waveform({ url, seed, progress, onSeek, height = 60, reflection 
         ctx.fillRect(x, topH + 1, barW, Math.max(1, v * botH));
       }
     }
-  }, [samples, width, height, progress, hover, reflection, step, themeVersion]);
+  }, [samples, width, height, progress, hover, reflection, step, themeVersion, visible]);
 
   const fractionAt = (clientX: number) => {
     const r = wrap.current!.getBoundingClientRect();

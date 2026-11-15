@@ -5,6 +5,7 @@ import { api } from "./lib/api";
 import { Sidebar, type View } from "./components/Sidebar";
 import { PlayerBar } from "./components/PlayerBar";
 import { Toasts } from "./components/Toasts";
+import { Feed } from "./views/Feed";
 import { Home } from "./views/Home";
 import { Search } from "./views/Search";
 import { Likes } from "./views/Likes";
@@ -61,10 +62,12 @@ export default function App() {
       <div className="flex min-h-0 flex-1">
         <Sidebar view={view} setView={setView} />
         <main ref={main} className="min-w-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-7">
+          {view === "feed" && <Feed />}
+          {view === "albums" && <Playlists key="albums" albums goSettings={goSettings} />}
           {view === "home" && <Home />}
           {view === "search" && <Search query={query} setQuery={setQuery} />}
           {view === "likes" && <Likes goSettings={goSettings} />}
-          {view === "playlists" && <Playlists goSettings={goSettings} />}
+          {view === "playlists" && <Playlists key="playlists" goSettings={goSettings} />}
           {view === "settings" && <Settings />}
         </main>
       </div>

@@ -18,6 +18,8 @@ export interface Track {
 }
 
 export interface Playlist {
+  systemId: string | null;
+  isAlbum: boolean;
   id: number;
   title: string;
   artist: string;
@@ -83,3 +85,5 @@ export interface ThemeConfig {
   preset: string;
   customCss: string;
 }
+
+export interface DiscoverySection { title: string; tracks: Track[]; playlists: Playlist[]; }

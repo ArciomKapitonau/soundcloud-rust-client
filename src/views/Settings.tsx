@@ -74,10 +74,10 @@ export function Settings() {
         </Section>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <Section title="Вход через OAuth" desc="Официальный API: нужен client_id и secret вашего приложения SoundCloud.">
+          <Section title="Вход через OAuth" desc="Для разработчиков: нужны Client ID и Secret приложения SoundCloud; регистрация требует Artist Pro.">
             <OfficialLoginForm />
           </Section>
-          <Section title="Веб-токены" desc="Резервный режим для api-v2: client_id и/или oauth_token из веб-версии.">
+          <Section title="Веб-сессия" desc="Подключение аккаунта без регистрации API-приложения: вход на сайте и перенос токена.">
             <WebTokenForm />
           </Section>
         </div>

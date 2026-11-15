@@ -39,12 +39,13 @@ export function OfficialLoginForm({ onDone }: { onDone?: () => void }) {
 
   return (
     <div className="space-y-3">
+      <p className="text-xs text-muted">Этот способ требует зарегистрированного API-приложения SoundCloud. Для его создания нужна подписка Artist Pro. Без реквизитов приложения используйте веб-сессию или гостевой режим.</p>
       <Field label="Client ID приложения">
         <input className={inputCls} value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="из soundcloud.com/you/apps" spellCheck={false} />
       </Field>
       <Field
         label="Client Secret"
-        hint={auth?.hasAppSecret && !secret ? "Секрет уже сохранён — оставьте поле пустым, чтобы ввести заново." : "Redirect URI приложения: http://localhost:3000/callback"}
+        hint={auth?.hasAppSecret && !secret ? "Для нового OAuth-входа введите Client Secret приложения повторно." : "Redirect URI приложения: http://localhost:3000/callback"}
       >
         <input className={inputCls} type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="••••••••" spellCheck={false} />
       </Field>
@@ -54,7 +55,7 @@ export function OfficialLoginForm({ onDone }: { onDone?: () => void }) {
         className="flex w-full items-center justify-center gap-2 rounded-pill bg-accent py-3 text-on-accent text-sm font-semibold transition hover:bg-accent-hover disabled:opacity-50"
       >
         {busy ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
-        {busy ? "Ожидаем вход в браузере…" : "Войти через SoundCloud / Google"}
+        {busy ? "Ожидаем вход в браузере…" : "Войти через SoundCloud OAuth"}
       </button>
       <button
         onClick={() => api.openUrl("https://soundcloud.com/you/apps")}
@@ -90,6 +91,10 @@ export function WebTokenForm({ onDone }: { onDone?: () => void }) {
 
   return (
     <div className="space-y-3">
+      <p className="text-xs text-muted">Войдите на сайте SoundCloud в обычном браузере, в том числе через Google, затем перенесите oauth_token сюда. Регистрация API-приложения для этого режима не требуется. Браузерный вход сам по себе не подключает этот клиент.</p>
+      <button type="button" onClick={() => api.openUrl("https://soundcloud.com/signin").catch((e) => notify(errorText(e)))} className="flex items-center gap-2 text-sm text-accent">
+        <ExternalLink size={15} /> Открыть SoundCloud для входа
+      </button>
       <Field label="client_id (необязательно)" hint="Пусто — клиент сам найдёт свежий публичный client_id в JS-бандлах soundcloud.com.">
         <input className={inputCls} value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="32 символа" spellCheck={false} />
       </Field>
@@ -97,7 +102,7 @@ export function WebTokenForm({ onDone }: { onDone?: () => void }) {
         label="oauth_token"
         hint={
           <>
-            soundcloud.com → DevTools → Application → Cookies → <code className="text-muted">oauth_token</code>.
+            После входа: инструменты разработчика → Application / Storage → Cookies → soundcloud.com → <code className="text-muted">oauth_token</code>.
             {auth?.v2OauthToken && <> Сейчас сохранён: {auth.v2OauthToken}</>}
           </>
         }

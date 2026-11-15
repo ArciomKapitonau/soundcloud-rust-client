@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import type { Track } from "../lib/types";
 import { useApp } from "../lib/store";
@@ -14,6 +15,15 @@ interface Props {
 
 export function TrackGrid({ tracks, loading, hasMore, loadingMore, onLoadMore, empty }: Props) {
   const { player, likedIds, playFrom, seekFraction, toggleLike } = useApp();
+
+  // Keep event props stable between position ticks so TrackCard.memo can skip
+  // every card except the currently playing one.
+  const currentId = player.track?.id;
+  const actions = useMemo(() => tracks.map((track, index) => ({
+    onPlay: () => playFrom(tracks, index),
+    onSeek: (fraction: number) => currentId === track.id ? seekFraction(fraction) : playFrom(tracks, index, fraction),
+    onLike: () => toggleLike(track),
+  })), [tracks, currentId, playFrom, seekFraction, toggleLike]);
 
   if (loading) {
     return (
@@ -49,9 +59,7 @@ export function TrackGrid({ tracks, loading, hasMore, loadingMore, onLoadMore, e
               status={isCurrent ? player.status : "idle"}
               progress={isCurrent ? progress : null}
               liked={likedIds.has(t.id)}
-              onPlay={() => playFrom(tracks, i)}
-              onSeek={(f) => (isCurrent ? seekFraction(f) : playFrom(tracks, i, f))}
-              onLike={() => toggleLike(t)}
+              {...actions[i]}
             />
           );
         })}

@@ -326,3 +326,13 @@ mod tests {
         }
     }
 }
+
+#[tauri::command]
+pub async fn get_discover(state: State<'_, AppState>) -> CmdResult<Vec<crate::models::DiscoverySection>> {
+    state.api.discover().await.map_err(err)
+}
+
+#[tauri::command]
+pub async fn get_system_playlist_tracks(state: State<'_, AppState>, system_id: String) -> CmdResult<Vec<Track>> {
+    state.api.system_playlist_tracks(&system_id).await.map_err(err)
+}

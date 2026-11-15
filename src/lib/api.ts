@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AuthStatus, Page, PlayerState, Playlist, RepeatMode, Settings, ThemeConfig, Track } from "./types";
+import type { DiscoverySection, AuthStatus, Page, PlayerState, Playlist, RepeatMode, Settings, ThemeConfig, Track } from "./types";
 
 /** Typed wrappers around the Rust commands in `src-tauri/src/commands.rs`. */
 export const api = {
@@ -12,6 +12,8 @@ export const api = {
   refreshClientId: () => invoke<string>("refresh_client_id"),
   logout: () => invoke<AuthStatus>("logout"),
 
+  systemPlaylistTracks: (systemId: string) => invoke<Track[]>("get_system_playlist_tracks", { systemId }),
+  discover: () => invoke<DiscoverySection[]>("get_discover"),
   feed: () => invoke<Page>("get_feed"),
   search: (query: string) => invoke<Page>("search_tracks", { query }),
   likes: () => invoke<Page>("get_likes"),
